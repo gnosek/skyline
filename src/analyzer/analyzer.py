@@ -1,5 +1,6 @@
 import logging
 from Queue import Empty
+import urlparse
 from redis import StrictRedis
 from time import time, sleep
 from threading import Thread
@@ -46,8 +47,9 @@ class Analyzer(Thread):
 
     def send_graphite_metric(self, name, value):
         if settings.GRAPHITE_HOST != '':
+            url = urlparse.urlparse(settings.GRAPHITE_HOST)
             sock = socket.socket()
-            sock.connect((settings.GRAPHITE_HOST.replace('http://', ''), settings.CARBON_PORT))
+            sock.connect((url.hostname, settings.CARBON_PORT))
             sock.sendall('%s %s %i\n' % (name, value, time()))
             sock.close()
             return True
