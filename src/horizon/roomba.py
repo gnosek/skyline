@@ -1,4 +1,6 @@
 from os import kill
+import socket
+import urlparse
 from redis import StrictRedis, WatchError
 from multiprocessing import Process
 from threading import Thread
@@ -31,6 +33,17 @@ class Roomba(Thread):
             kill(self.parent_pid, 0)
         except:
             exit(0)
+
+    def send_graphite_metric(self, name, value):
+        if settings.GRAPHITE_HOST != '':
+            url = urlparse.urlparse(settings.GRAPHITE_HOST)
+            sock = socket.socket()
+            sock.connect((url.hostname, settings.CARBON_PORT))
+            sock.sendall('%s %s %i\n' % (name, value, time()))
+            sock.close()
+            return True
+
+        return False
 
     def vacuum(self, i, namespace, duration):
         """
@@ -140,6 +153,13 @@ class Roomba(Thread):
         logger.info('%s keyspace is %d' % (namespace, (len(assigned_metrics) - euthanized)))
         logger.info('blocked %d times' % blocked)
         logger.info('euthanized %d geriatric keys' % euthanized)
+
+        graphite_namespace = namespace.strip('.').replace('.', '_')
+        self.send_graphite_metric('skyline.horizon.roomba.%s.elapsed' % graphite_namespace, '%f' % (time() - begin))
+        self.send_graphite_metric('skyline.horizon.roomba.%s.keyspace' % graphite_namespace,
+                                  '%d' % (len(assigned_metrics) - euthanized))
+        self.send_graphite_metric('skyline.horizon.roomba.blocked', '%d' % blocked)
+        self.send_graphite_metric('skyline.horizon.roomba.euthanized', '%d' % euthanized)
 
         if (time() - begin < 30):
             logger.info('sleeping due to low run time...')
