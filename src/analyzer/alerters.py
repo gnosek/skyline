@@ -71,3 +71,9 @@ def trigger_alert(alert, metric):
         strategy = 'alert_' + alert[1]
 
     getattr(alerters, strategy)(alert, metric)
+
+
+def trigger_alerts(alert, metrics):
+
+    for metric in metrics:
+        trigger_alert(alert, metric)
