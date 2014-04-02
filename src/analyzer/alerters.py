@@ -3,6 +3,7 @@ from email.MIMEText import MIMEText
 from email.MIMEImage import MIMEImage
 from smtplib import SMTP
 import alerters
+import sparkline
 import settings
 
 
@@ -17,6 +18,7 @@ alert: the tuple specified in your settings:
 new_metrics: information about the newly reported anomalies themselves
     new_metrics[i][0]: the anomalous value
     new_metrics[i][1]: The full name of the anomalous metric
+    new_metrics[i][2]: summarized time series data of the anomalous metric
 notified_metrics: information about already reported anomalies
     like above but alerters should only include these at no additional cost
     (attention and otherwise) to receivers
@@ -48,14 +50,14 @@ def alert_smtp(alert, new_metrics, notified_metrics):
         subject = '[skyline alert] %d anomalous metrics' % len(new_metrics)
         for metric in new_metrics:
             link = '%s/render/?width=588&height=308&target=%s' % (settings.GRAPHITE_HOST, metric[1])
-            body.append('<a href="%s">%s</a> = %s' % (link, metric[1], metric[0]))
+            body.append('<a href="%s">%s</a> = %s %s' % (link, metric[1], metric[0], sparkline.sparkline(metric[2])))
 
     if notified_metrics:
         subject += ' (%d already reported)' % len(notified_metrics)
         body.append('<br>Already reported metrics')
         for metric in notified_metrics:
             link = '%s/render/?width=588&height=308&target=%s' % (settings.GRAPHITE_HOST, metric[1])
-            body.append('<a href="%s">%s</a> = %s' % (link, metric[1], metric[0]))
+            body.append('<a href="%s">%s</a> = %s %s' % (link, metric[1], metric[0], sparkline.sparkline(metric[2])))
 
     for recipient in recipients:
         msg = MIMEMultipart('alternative')

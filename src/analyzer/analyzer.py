@@ -98,7 +98,7 @@ class Analyzer(Thread):
                 # If it's anomalous, add it to list
                 if anomalous:
                     base_name = metric_name.replace(settings.FULL_NAMESPACE, '', 1)
-                    metric = [datapoint, base_name]
+                    metric = [datapoint, base_name, [p[1] for p in timeseries[-20:]]]
                     self.anomalous_metrics.append(metric)
 
                     # Get the anomaly breakdown - who returned True?
@@ -214,7 +214,7 @@ class Analyzer(Thread):
             filename = path.abspath(path.join(path.dirname(__file__), '..', settings.ANOMALY_DUMP))
             with open(filename, 'w') as fh:
                 # Make it JSONP with a handle_data() function
-                anomalous_metrics = list(self.anomalous_metrics)
+                anomalous_metrics = [m[0:2] for m in self.anomalous_metrics]
                 anomalous_metrics.sort(key=operator.itemgetter(1))
                 fh.write('handle_data(%s)' % anomalous_metrics)
 
