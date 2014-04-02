@@ -20,7 +20,7 @@ metric: information about the anomaly itself
 """
 
 
-def alert_smtp(alert, metric):
+def alert_smtp(alert, new_metrics, notified_metrics):
 
     # For backwards compatibility
     if '@' in alert[1]:
@@ -34,46 +34,44 @@ def alert_smtp(alert, metric):
     if type(recipients) is str:
         recipients = [recipients]
 
-    for recipient in recipients:
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = '[skyline alert] ' + metric[1]
-        msg['From'] = sender
-        msg['To'] = recipient
-        link = '%s/render/?width=588&height=308&target=%s' % (settings.GRAPHITE_HOST, metric[1])
-        body = 'Anomalous value: %s <br> Next alert in: %s seconds <a href="%s"><img src="%s"/></a>' % (metric[0], alert[2], link, link)
-        msg.attach(MIMEText(body, 'html'))
-        s = SMTP('127.0.0.1')
-        s.sendmail(sender, recipient, msg.as_string())
-        s.quit()
+    for metric in new_metrics:
+        for recipient in recipients:
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = '[skyline alert] ' + metric[1]
+            msg['From'] = sender
+            msg['To'] = recipient
+            link = '%s/render/?width=588&height=308&target=%s' % (settings.GRAPHITE_HOST, metric[1])
+            body = 'Anomalous value: %s <br> Next alert in: %s seconds <a href="%s"><img src="%s"/></a>' % (metric[0], alert[2], link, link)
+            msg.attach(MIMEText(body, 'html'))
+            s = SMTP('127.0.0.1')
+            s.sendmail(sender, recipient, msg.as_string())
+            s.quit()
 
 
-def alert_pagerduty(alert, metric):
+def alert_pagerduty(alert, new_metrics, notified_metrics):
     import pygerduty
     pager = pygerduty.PagerDuty(settings.PAGERDUTY_OPTS['subdomain'], settings.PAGERDUTY_OPTS['auth_token'])
-    pager.trigger_incident(settings.PAGERDUTY_OPTS['key'], "Anomalous metric: %s (value: %s)" % (metric[1], metric[0]))
+    for metric in new_metrics:
+        pager.trigger_incident(settings.PAGERDUTY_OPTS['key'], "Anomalous metric: %s (value: %s)" % (metric[1], metric[0]))
 
 
-def alert_hipchat(alert, metric):
+def alert_hipchat(alert, new_metrics, notified_metrics):
     import hipchat
     hipster = hipchat.HipChat(token=settings.HIPCHAT_OPTS['auth_token'])
     rooms = settings.HIPCHAT_OPTS['rooms'][alert[0]]
-    link = '%s/render/?width=588&height=308&target=%s' % (settings.GRAPHITE_HOST, metric[1])
 
-    for room in rooms:
-        hipster.method('rooms/message', method='POST', parameters={'room_id': room, 'from': 'Skyline', 'color': settings.HIPCHAT_OPTS['color'], 'message': 'Anomaly: <a href="%s">%s</a> : %s' % (link, metric[1], metric[0])})
+    for metric in new_metrics:
+        link = '%s/render/?width=588&height=308&target=%s' % (settings.GRAPHITE_HOST, metric[1])
+
+        for room in rooms:
+            hipster.method('rooms/message', method='POST', parameters={'room_id': room, 'from': 'Skyline', 'color': settings.HIPCHAT_OPTS['color'], 'message': 'Anomaly: <a href="%s">%s</a> : %s' % (link, metric[1], metric[0])})
 
 
-def trigger_alert(alert, metric):
+def trigger_alerts(alert, new_metrics, notified_metrics):
 
     if '@' in alert[1]:
         strategy = 'alert_smtp'
     else:
         strategy = 'alert_' + alert[1]
 
-    getattr(alerters, strategy)(alert, metric)
-
-
-def trigger_alerts(alert, new_metrics, notified_metrics):
-
-    for metric in new_metrics:
-        trigger_alert(alert, metric)
+    getattr(alerters, strategy)(alert, new_metrics, notified_metrics)
