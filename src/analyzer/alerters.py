@@ -48,14 +48,14 @@ def alert_smtp(alert, new_metrics, notified_metrics):
         subject = '[skyline alert] %d anomalous metrics' % len(new_metrics)
         for metric in new_metrics:
             link = '%s/render/?width=588&height=308&target=%s' % (settings.GRAPHITE_HOST, metric[1])
-            body.append('<a href="%s">%s</a> = %s' % (link, metric[1, metric[0]]))
+            body.append('<a href="%s">%s</a> = %s' % (link, metric[1], metric[0]))
 
     if notified_metrics:
         subject += ' (%d already reported)' % len(notified_metrics)
         body.append('<br>Already reported metrics')
         for metric in notified_metrics:
             link = '%s/render/?width=588&height=308&target=%s' % (settings.GRAPHITE_HOST, metric[1])
-            body.append('<a href="%s">%s</a> = %s' % (link, metric[1, metric[0]]))
+            body.append('<a href="%s">%s</a> = %s' % (link, metric[1], metric[0]))
 
     for recipient in recipients:
         msg = MIMEMultipart('alternative')
