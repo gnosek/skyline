@@ -1,3 +1,4 @@
+import fnmatch
 import pandas
 import numpy as np
 import scipy
@@ -18,9 +19,11 @@ from settings import (
     REDIS_SOCKET_PATH,
     ENABLE_SECOND_ORDER,
     BOREDOM_SET_SIZE,
+    VALUE_THRESHOLDS,
 )
 
 from algorithm_exceptions import *
+import settings
 
 logger = logging.getLogger("AnalyzerLog")
 redis_conn = StrictRedis(unix_socket_path=REDIS_SOCKET_PATH)
@@ -269,6 +272,36 @@ def is_anomalously_anomalous(metric_name, ensemble, datapoint):
     return abs(intervals[-1] - mean) > 3 * stdDev
 
 
+def _check_value_thresholds(timeseries, thresholds):
+    if not thresholds:
+        return False
+
+    t_variability = thresholds.get('variability')
+    t_low_water = thresholds.get('low_water')
+    t_high_water = thresholds.get('high_water')
+
+    series = pandas.Series([x[1] for x in timeseries])
+    max_val = series.max()
+
+    if t_low_water is not None and max_val < t_low_water:
+        raise Boring()
+
+    if t_high_water is not None and max_val >= t_high_water:
+        return True
+
+    if t_variability is not None:
+        variability = (max_val - series.min) / (series.median() or 1)
+        if variability < t_variability:
+            return False
+
+
+def value_thresholds_alert(timeseries, metric_name):
+    for pattern, thresholds in VALUE_THRESHOLDS:
+        if fnmatch.fnmatch(metric_name, pattern):
+            return _check_value_thresholds(timeseries, thresholds)
+
+
+
 def run_selected_algorithm(timeseries, metric_name):
     """
     Filter timeseries and run selected algorithm.
@@ -284,6 +317,11 @@ def run_selected_algorithm(timeseries, metric_name):
     # Get rid of boring series
     if len(set(item[1] for item in timeseries[-MAX_TOLERABLE_BOREDOM:])) == BOREDOM_SET_SIZE:
         raise Boring()
+
+    # check absolute value/variability thresholds
+    vt = value_thresholds_alert(timeseries, metric_name)
+    if vt is not None:
+        return vt, [], timeseries[-1][1]
 
     try:
         ensemble = [globals()[algorithm](timeseries) for algorithm in ALGORITHMS]
