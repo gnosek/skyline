@@ -37,18 +37,35 @@ def alert_smtp(alert, new_metrics, notified_metrics):
     if type(recipients) is str:
         recipients = [recipients]
 
-    for metric in new_metrics:
-        for recipient in recipients:
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = '[skyline alert] ' + metric[1]
-            msg['From'] = sender
-            msg['To'] = recipient
+    body = []
+    if len(new_metrics) == 1:
+        metric = new_metrics[0]
+        subject = '[skyline alert] ' + metric[1]
+        link = '%s/render/?width=588&height=308&target=%s' % (settings.GRAPHITE_HOST, metric[1])
+        body.append('Anomalous value: %s <br> Next alert in: %s seconds <a href="%s"><img src="%s"/></a>' %
+                    (metric[0], alert[2], link, link))
+    else:
+        subject = '[skyline alert] %d anomalous metrics' % len(new_metrics)
+        for metric in new_metrics:
             link = '%s/render/?width=588&height=308&target=%s' % (settings.GRAPHITE_HOST, metric[1])
-            body = 'Anomalous value: %s <br> Next alert in: %s seconds <a href="%s"><img src="%s"/></a>' % (metric[0], alert[2], link, link)
-            msg.attach(MIMEText(body, 'html'))
-            s = SMTP('127.0.0.1')
-            s.sendmail(sender, recipient, msg.as_string())
-            s.quit()
+            body.append('<a href="%s">%s</a> = %s' % (link, metric[1, metric[0]]))
+
+    if notified_metrics:
+        subject += ' (%d already reported)' % len(notified_metrics)
+        body.append('<br>Already reported metrics')
+        for metric in notified_metrics:
+            link = '%s/render/?width=588&height=308&target=%s' % (settings.GRAPHITE_HOST, metric[1])
+            body.append('<a href="%s">%s</a> = %s' % (link, metric[1, metric[0]]))
+
+    for recipient in recipients:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = sender
+        msg['To'] = recipient
+        msg.attach(MIMEText('<br>'.join(body), 'html'))
+        s = SMTP('127.0.0.1')
+        s.sendmail(sender, recipient, msg.as_string())
+        s.quit()
 
 
 def alert_pagerduty(alert, new_metrics, notified_metrics):
