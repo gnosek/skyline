@@ -7,16 +7,19 @@ import settings
 
 
 """
-Create any alerter you want here. The function will be invoked from trigger_alert.
-Two arguments will be passed, both of them tuples: alert and metric.
+Create any alerter you want here. The function will be invoked from trigger_alerts.
+Three arguments will be passed, all of them tuples: alert and two lists of metrics.
 
 alert: the tuple specified in your settings:
     alert[0]: The matched substring of the anomalous metric
     alert[1]: the name of the strategy being used to alert
     alert[2]: The timeout of the alert that was triggered
-metric: information about the anomaly itself
-    metric[0]: the anomalous value
-    metric[1]: The full name of the anomalous metric
+new_metrics: information about the newly reported anomalies themselves
+    new_metrics[i][0]: the anomalous value
+    new_metrics[i][1]: The full name of the anomalous metric
+notified_metrics: information about already reported anomalies
+    like above but alerters should only include these at no additional cost
+    (attention and otherwise) to receivers
 """
 
 
