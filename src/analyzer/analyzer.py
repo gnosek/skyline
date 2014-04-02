@@ -213,12 +213,12 @@ class Analyzer(Thread):
                 fh.write('handle_data(%s)' % anomalous_metrics)
 
             # Log progress
-            logger.info('seconds to run    :: %.2f' % (time() - now))
-            logger.info('total metrics     :: %d' % len(unique_metrics))
-            logger.info('total analyzed    :: %d' % (len(unique_metrics) - sum(exceptions.values())))
-            logger.info('total anomalies   :: %d' % len(self.anomalous_metrics))
-            logger.info('exception stats   :: %s' % exceptions)
-            logger.info('anomaly breakdown :: %s' % anomaly_breakdown)
+            logger.debug('seconds to run    :: %.2f' % (time() - now))
+            logger.debug('total metrics     :: %d' % len(unique_metrics))
+            logger.debug('total analyzed    :: %d' % (len(unique_metrics) - sum(exceptions.values())))
+            logger.debug('total anomalies   :: %d' % len(self.anomalous_metrics))
+            logger.debug('exception stats   :: %s' % exceptions)
+            logger.debug('anomaly breakdown :: %s' % anomaly_breakdown)
 
             # Log to Graphite
             self.send_graphite_metric('skyline.analyzer.run_time', '%.2f' % (time() - now))
@@ -239,7 +239,7 @@ class Analyzer(Thread):
                 time_human = (timeseries[-1][0] - timeseries[0][0]) / 3600
                 projected = 24 * (time() - now) / time_human
 
-                logger.info('canary duration   :: %.2f' % time_human)
+                logger.debug('canary duration   :: %.2f' % time_human)
                 self.send_graphite_metric('skyline.analyzer.duration', '%.2f' % time_human)
                 self.send_graphite_metric('skyline.analyzer.projected', '%.2f' % projected)
 
@@ -248,5 +248,5 @@ class Analyzer(Thread):
 
             # Sleep if it went too fast
             if time() - now < 5:
-                logger.info('sleeping due to low run time...')
+                logger.debug('sleeping due to low run time...')
                 sleep(10)

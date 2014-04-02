@@ -149,10 +149,10 @@ class Roomba(Thread):
             finally:
                 pipe.reset()
 
-        logger.info('operated on %s in %f seconds' % (namespace, time() - begin))
-        logger.info('%s keyspace is %d' % (namespace, (len(assigned_metrics) - euthanized)))
-        logger.info('blocked %d times' % blocked)
-        logger.info('euthanized %d geriatric keys' % euthanized)
+        logger.debug('operated on %s in %f seconds' % (namespace, time() - begin))
+        logger.debug('%s keyspace is %d' % (namespace, (len(assigned_metrics) - euthanized)))
+        logger.debug('blocked %d times' % blocked)
+        logger.debug('euthanized %d geriatric keys' % euthanized)
 
         graphite_namespace = namespace.strip('.').replace('.', '_')
         self.send_graphite_metric('skyline.horizon.roomba.%s.elapsed' % graphite_namespace, '%f' % (time() - begin))
@@ -162,7 +162,7 @@ class Roomba(Thread):
         self.send_graphite_metric('skyline.horizon.roomba.euthanized', '%d' % euthanized)
 
         if (time() - begin < 30):
-            logger.info('sleeping due to low run time...')
+            logger.debug('sleeping due to low run time...')
             sleep(10)
 
     def run(self):
