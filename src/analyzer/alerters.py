@@ -73,7 +73,7 @@ def trigger_alert(alert, metric):
     getattr(alerters, strategy)(alert, metric)
 
 
-def trigger_alerts(alert, metrics):
+def trigger_alerts(alert, new_metrics, notified_metrics):
 
-    for metric in metrics:
+    for metric in new_metrics:
         trigger_alert(alert, metric)

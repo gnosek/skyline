@@ -192,7 +192,8 @@ class Analyzer(Thread):
             # Send alerts
             if settings.ENABLE_ALERTS:
                 for alert in settings.ALERTS:
-                    metrics = []
+                    notified_metrics = []
+                    new_metrics = []
                     for metric in self.anomalous_metrics:
                         if alert[0] in metric[1]:
                             cache_key = 'last_alert.%s.%s' % (alert[1], metric[1])
@@ -200,11 +201,13 @@ class Analyzer(Thread):
                                 last_alert = self.redis_conn.get(cache_key)
                                 if not last_alert:
                                     self.redis_conn.setex(cache_key, alert[2], packb(metric[0]))
-                                    metrics.append(metric)
+                                    new_metrics.append(metric)
+                                else:
+                                    notified_metrics.append(metric)
 
                             except Exception as e:
                                 logger.error("couldn't send alert: %s" % e)
-                    trigger_alerts(alert, metrics)
+                    trigger_alerts(alert, new_metrics, notified_metrics)
 
             # Write anomalous_metrics to static webapp directory
             filename = path.abspath(path.join(path.dirname(__file__), '..', settings.ANOMALY_DUMP))
