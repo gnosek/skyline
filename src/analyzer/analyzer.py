@@ -207,7 +207,8 @@ class Analyzer(Thread):
 
                             except Exception as e:
                                 logger.error("couldn't send alert: %s" % e)
-                    trigger_alerts(alert, new_metrics, notified_metrics)
+                    if new_metrics:
+                        trigger_alerts(alert, new_metrics, notified_metrics)
 
             # Write anomalous_metrics to static webapp directory
             filename = path.abspath(path.join(path.dirname(__file__), '..', settings.ANOMALY_DUMP))
