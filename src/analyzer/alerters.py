@@ -25,6 +25,12 @@ notified_metrics: information about already reported anomalies
 """
 
 
+def format_metric(metric):
+    link = '%s/render/?width=588&height=308&target=%s' % (settings.GRAPHITE_HOST, metric[1])
+    return ('%s %s = %s %s' %
+           (sparkline.sparkline(metric[2]), metric[1], metric[0], link))
+
+
 def alert_smtp(alert, new_metrics, notified_metrics):
 
     # For backwards compatibility
@@ -43,28 +49,23 @@ def alert_smtp(alert, new_metrics, notified_metrics):
     if len(new_metrics) == 1:
         metric = new_metrics[0]
         subject = '[skyline alert] ' + metric[1]
-        link = '%s/render/?width=588&height=308&target=%s' % (settings.GRAPHITE_HOST, metric[1])
-        body.append('Anomalous value: %s <br> Next alert in: %s seconds <a href="%s"><img src="%s"/></a>' %
-                    (metric[0], alert[2], link, link))
+        body.append(format_metric(metric))
     else:
         subject = '[skyline alert] %d anomalous metrics' % len(new_metrics)
         for metric in new_metrics:
-            link = '%s/render/?width=588&height=308&target=%s' % (settings.GRAPHITE_HOST, metric[1])
-            body.append('<a href="%s">%s</a> = %s %s' % (link, metric[1], metric[0], sparkline.sparkline(metric[2])))
+            body.append(format_metric(metric))
 
     if notified_metrics:
         subject += ' (%d already reported)' % len(notified_metrics)
-        body.append('<br>Already reported metrics')
+        body.append('Already reported metrics')
         for metric in notified_metrics:
-            link = '%s/render/?width=588&height=308&target=%s' % (settings.GRAPHITE_HOST, metric[1])
-            body.append('<a href="%s">%s</a> = %s %s' % (link, metric[1], metric[0], sparkline.sparkline(metric[2])))
+            body.append(format_metric(metric))
 
     for recipient in recipients:
-        msg = MIMEMultipart('alternative')
+        msg = MIMEText('\n'.join(body), 'plain', 'utf-8')
         msg['Subject'] = subject
         msg['From'] = sender
         msg['To'] = recipient
-        msg.attach(MIMEText('<br>'.join(body), 'html'))
         s = SMTP('127.0.0.1')
         s.sendmail(sender, recipient, msg.as_string())
         s.quit()
