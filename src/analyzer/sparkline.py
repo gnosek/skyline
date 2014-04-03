@@ -7,7 +7,7 @@ ticks = list(u'▁▂▃▄▅▆▇█')
 def tick(value, min_val, max_val):
     if min_val == max_val:
         return ticks[0]
-    tick_id = len(ticks) * (value - min_val) / (max_val - min_val)
+    tick_id = int(len(ticks) * (value - min_val) / (max_val - min_val))
     if tick_id == len(ticks):
         tick_id -= 1
     return ticks[tick_id]
