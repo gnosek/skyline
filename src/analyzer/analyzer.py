@@ -197,16 +197,13 @@ class Analyzer(Thread):
                     for metric in self.anomalous_metrics:
                         if alert[0] in metric[1]:
                             cache_key = 'last_alert.%s.%s' % (alert[1], metric[1])
-                            try:
-                                last_alert = self.redis_conn.get(cache_key)
-                                if not last_alert:
-                                    self.redis_conn.setex(cache_key, alert[2], packb(metric[0]))
-                                    new_metrics.append(metric)
-                                else:
-                                    notified_metrics.append(metric)
+                            last_alert = self.redis_conn.get(cache_key)
+                            self.redis_conn.setex(cache_key, alert[2] * 3/2, packb(metric[0]))
+                            if not last_alert:
+                                new_metrics.append(metric)
+                            else:
+                                notified_metrics.append(metric)
 
-                            except Exception as e:
-                                logger.error("couldn't send alert: %s" % e)
                     if new_metrics:
                         trigger_alerts(alert, new_metrics, notified_metrics)
 
